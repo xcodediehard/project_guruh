@@ -66,7 +66,7 @@ class AuthController extends Controller
         if (Auth::guard('client')->attempt($auth)) {
             return redirect()->route("home");
         } else {
-            dd("gagal");
+            return redirect()->route("user.login");
         }
     }
     public function forgot_password_user()

@@ -24,10 +24,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, "home"])->name("home");
 Route::get('/cart/{title}', [HomeController::class, "cart"])->name("cart");
-Route::post('/process_keranjang', [HomeController::class, "process_keranjang"])->name("process_keranjang");
-Route::post('/process_checkout', [HomeController::class, "process_checkout"])->name("process_checkout");
 Route::middleware(['auth:client'])->group(function () {
     Route::get('/keranjang', [HomeController::class, "keranjang"])->name("keranjang");
+    Route::post('/process_keranjang', [HomeController::class, "process_keranjang"])->name("process_keranjang");
+    Route::get('/checkout', [HomeController::class, "checkout"])->name("checkout");
+    Route::post('/process_checkout', [HomeController::class, "process_checkout"])->name("process_checkout");
 });
 
 // Admin

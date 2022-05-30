@@ -91,9 +91,57 @@ class HomeController extends Controller
         return view("client.contents.keranjang", compact("data"));
     }
 
+
+    public function checkout()
+    {
+        // dd(session("list_cart"));
+        if (!empty(session("list_cart"))) {
+            $data = [
+                "title" => "Checkout",
+                "list_checkout" => session("list_cart")
+            ];
+            return view("client.contents.checkout", compact("data"));
+        } else {
+            return redirect()->route("keranjang");
+        }
+    }
     public function process_checkout(Request $request)
     {
-        dd("checkout");
-        // dd($request->all());
+        $request->validate([
+            "cart.*" => 'required|exists:keranjangs,id'
+        ]);
+        $collection_checkout = collect($request->cart)->map(function ($id) {
+            $keranjang = DB::select("
+            SELECT 
+                a.id as keranjang,
+                a.id_detail_barang as id_detail_barang,
+                a.jumlah as jumlah,
+                (a.jumlah * c.harga) as pembayaran,
+                b.size as detail_size,
+                b.stok as detail_stok,
+                c.barang as barang,
+                c.gambar as gambar,
+                c.harga as harga 
+            FROM 
+                keranjangs a 
+            LEFT JOIN detail_barangs b 
+            ON a.id_detail_barang=b.id 
+            LEFT JOIN barangs c 
+            ON b.id_barang = c.id
+            WHERE a.id = " . $id . "
+            ");
+            return $keranjang[0];
+        });
+
+        if (!empty(session("list_cart"))) {
+            session()->forget("list_cart");
+            session(['list_cart' => $collection_checkout]);
+        } else {
+            session(['list_cart' => $collection_checkout]);
+        }
+
+        // dd(session("list_cart"));
+
+        return redirect()->route("checkout");
     }
 }
