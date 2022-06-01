@@ -14,17 +14,25 @@
             <li class="nav-item active">
                 <a class="nav-link" href="{{route('keranjang')}}">Keranjang <span class="sr-only">(current)</span></a>
             </li>
+            <li class="nav-item active">
+                <a class="nav-link" href="{{route('status_transaksi')}}">Transaksi <span
+                        class="sr-only">(current)</span></a>
+            </li>
             @endif
         </ul>
         <hr>
-        <div class="input-group mr-2">
-            <input type="text" class="form-control" placeholder="Cari sepatu yang cocok buat anda.."
-                aria-label="Recipient's username" aria-describedby="button-addon2">
-            <div class="input-group-append">
-                <button class="btn btn-outline-light" type="button" id="button-addon2">Cari</button>
-            </div>
+        <div class="mr-2">
+            <form action="{{ route('process_search') }}" method="POST">
+                @csrf
+                <div class="input-group mr-2 r-3">
+                    <input type="text" name="search" class="form-control" placeholder="Cari sepatu keperluan anda.."
+                        aria-label="Recipient's username" aria-describedby="button-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-light" type="submit" id="button-addon2">Cari</button>
+                    </div>
+                </div>
+            </form>
         </div>
-        <hr>
         @if (!empty(auth()->guard("client")->user()))
         <a href="{{ route('user.logout') }}" class="btn btn-outline-light mr-2">Logout</a>
         @else

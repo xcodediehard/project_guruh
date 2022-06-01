@@ -24,11 +24,18 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, "home"])->name("home");
 Route::get('/cart/{title}', [HomeController::class, "cart"])->name("cart");
+Route::get('/search/merek/{search}', [HomeController::class, "home_by_merek"])->name("home_by_merek");
+Route::get('/search/barang/{search}', [HomeController::class, "home_by_search"])->name("home_by_search");
+Route::post('/process_search', [HomeController::class, "process_search"])->name("process_search");
+Route::get('/show', [HomeController::class, "show_snap"])->name("show");
 Route::middleware(['auth:client'])->group(function () {
     Route::get('/keranjang', [HomeController::class, "keranjang"])->name("keranjang");
+    Route::get('/status_transaksi', [HomeController::class, "status_transaksi"])->name("status_transaksi");
     Route::post('/process_keranjang', [HomeController::class, "process_keranjang"])->name("process_keranjang");
     Route::get('/checkout', [HomeController::class, "checkout"])->name("checkout");
     Route::post('/process_checkout', [HomeController::class, "process_checkout"])->name("process_checkout");
+    Route::post('/payment', [HomeController::class, "payment"])->name("payment");
+    Route::get('/delete_keranjang/{keranjang}', [HomeController::class, "delete_keranjang"])->name("delete_keranjang");
 });
 
 // Admin

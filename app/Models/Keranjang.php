@@ -9,6 +9,7 @@ class Keranjang extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = "id";
     protected $fillable = ['id_pelanggan', 'id_detail_barang', 'jumlah'];
 
     public function field_detail_barang()

@@ -6,7 +6,7 @@
     </div>
     <div class="col">
         <div class="row">
-            @foreach ($data['cart_list'] as $cart_item)
+            @foreach ($data['cart_list']->barang_list as $cart_item)
             <a href="{{ route('cart', ['title'=>str_replace(" ","+",$cart_item->barang)]) }}" class="btn btn-light">
                 <div class="card m-2 border border-primary" style="width:18rem">
                     <img src="{{ asset('resources/image/barang/'.$cart_item->gambar) }}"

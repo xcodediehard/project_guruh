@@ -6,8 +6,24 @@
             <h4>Detail Pesanan dan Data Diri</h4>
         </div>
         <div class="card-body text-dark">
+            <ul class="list-group mb-2">
+                <li class="list-group-item active font-weight-bold" aria-current="true">Data Pengiriman</li>
+                <li class="list-group-item d-flex justify-content-start">
+                    <p>{{ $data["client"]["name"] }}</p>
+                </li>
+                <li class="list-group-item d-flex justify-content-start">
+                    <p>{{ $data["client"]["telpon"] }}</p>
+                </li>
+                <li class="list-group-item d-flex justify-content-start">
+                    <p>{{ $data["client"]["alamat"] }}</p>
+                </li>
+            </ul>
             <ul class="list-group">
-                <li class="list-group-item active" aria-current="true">Detail Pemesanan</li>
+                <li class="list-group-item active font-weight-bold" aria-current="true">Detail Pemesanan</li>
+                <form action="{{ route('payment') }}" method="post">
+                    @csrf
+                    <input type="hidden" class="detail_pemesanan" name="detail_pemesanan">
+                </form>
                 @foreach ($data["list_checkout"] as $item)
                 <li class="list-group-item d-flex justify-content-start">
                     <img src="{{ asset('resources/image/barang/'.$item->gambar) }}"
@@ -25,15 +41,45 @@
                     <h4>Total : Rp.{{ number_format($data["list_checkout"]->sum("pembayaran")) }}</h4>
                 </li>
             </ul>
-            <div class="card my-3">
-                <div class="card-header">Data Diri</div>
-                <div class="card-body"></div>
-                <div class="card-footer"></div>
-            </div>
         </div>
         <div class=" card-footer text-dark">
-            <button type="submit" class="btn btn-danger">Bayar</button>
+            <button type="submit" class="btn btn-danger btn-lg btn-block" id="pay-button">Lakukan Pembayaran</button>
         </div>
     </div>
 </div>
 @endsection
+@push("scripts")
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}">
+</script>
+<script>
+    const payButton = document.querySelector('#pay-button');
+    payButton.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        snap.pay('{{ $data["snap"] }}', {
+            // Optional
+            onSuccess: function(result) {
+                // console.log("success")
+                // console.log(result.order_id)
+                $(".detail_pemesanan").attr("value",result.order_id);
+                $("form").submit();
+                // console.log(result)
+            },
+            // Optional
+            onPending: function(result) {
+                // console.log("pendding")
+                // console.log(result.order_id)
+                $(".detail_pemesanan").attr("value",result.order_id);
+                $("form").submit();
+            },
+            // Optional
+            onError: function(result) {
+                // console.log("error")
+                // console.log(result.order_id)
+                $(".detail_pemesanan").attr("value",result.order_id);
+                $("form").submit();
+            }
+        });
+    });
+</script>
+@endpush

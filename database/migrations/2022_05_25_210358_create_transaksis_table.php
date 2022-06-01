@@ -18,6 +18,8 @@ class CreateTransaksisTable extends Migration
             $table->unsignedBigInteger("id_pelanggan")->index()->nullable();
             $table->string("payment_id")->unique();
             $table->text("keterangan")->nullable();
+            $table->text("nama");
+            $table->text("telpon");
             $table->text("alamat");
             $table->integer("biaya");
             $table->timestamp("tanggal_pesan")->useCurrent();
