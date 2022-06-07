@@ -28,6 +28,9 @@ Route::get('/search/merek/{search}', [HomeController::class, "home_by_merek"])->
 Route::get('/search/barang/{search}', [HomeController::class, "home_by_search"])->name("home_by_search");
 Route::post('/process_search', [HomeController::class, "process_search"])->name("process_search");
 Route::get('/show', [HomeController::class, "show_snap"])->name("show");
+Route::get('/method_get', [HomeController::class, "method_get"])->name("method_get");
+Route::get('/method_post', [HomeController::class, "method_post"])->name("method_post");
+// Route::get('/validation', [AuthController::class, "validation_transaction"])->name("show");
 Route::middleware(['auth:client'])->group(function () {
     Route::get('/keranjang', [HomeController::class, "keranjang"])->name("keranjang");
     Route::get('/status_transaksi', [HomeController::class, "status_transaksi"])->name("status_transaksi");
@@ -35,7 +38,11 @@ Route::middleware(['auth:client'])->group(function () {
     Route::get('/checkout', [HomeController::class, "checkout"])->name("checkout");
     Route::post('/process_checkout', [HomeController::class, "process_checkout"])->name("process_checkout");
     Route::post('/payment', [HomeController::class, "payment"])->name("payment");
+    Route::post('/payment_checkout', [HomeController::class, "payment_checkout"])->name("payment_checkout");
     Route::get('/delete_keranjang/{keranjang}', [HomeController::class, "delete_keranjang"])->name("delete_keranjang");
+    Route::post('/checkouts', [HomeController::class, "pre_checkout"])->name("pre_checkout");
+    Route::get('/cart_to_checkout', [HomeController::class, "cart_to_checkout"])->name("cart_to_checkout");
+    Route::post('/send_comment', [HomeController::class, "send_comment"])->name("send_comment");
 });
 
 // Admin

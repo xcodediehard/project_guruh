@@ -69,6 +69,32 @@
             </div>
         </form>
     </div>
+    <div class="card mt-3 mb-3 boder border-primary text-dark">
+        <div class="card-header">
+            <h4>Komentar</h4>
+        </div>
+        <div class="card-body">
+            @foreach ($data["list_comment"] as $list_comment)
+            <div class="card border border-primary mt-3">
+                <div class="card-header bg-danger text-white">
+                    <h5>{{$list_comment->name}}</h5>
+                    <div class="score">
+                        @for ($i = 0; $i < 5; $i++) @if ($i<$list_comment->rate)
+                            <i class="fas fa-star text-warning"></i>
+                            @else
+
+                            <i class="fas fa-star"></i>
+                            @endif
+                            @endfor
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p>{{$list_comment->komentar}}</p>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
 </div>
 
 @php
@@ -135,7 +161,7 @@ $(".add_keranjang").on("click", function () {
 
 // CLICK CHECKOUT
 $(".add_checkout").on("click", function () {
-    $("form").attr("action", "{{route('process_checkout')}}");
+    $("form").attr("action", "{{route('pre_checkout')}}");
 });
 
 $("input[name='ukuran']").on("click", function () {

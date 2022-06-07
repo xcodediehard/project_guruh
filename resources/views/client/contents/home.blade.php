@@ -13,6 +13,15 @@
                         alt="{{ asset('resources/image/barang/'.$cart_item->gambar) }}" class="img-thumbnile">
                     <div class="card-body text-dark">
                         <h4>{{ $cart_item->barang }}</h4>
+                        <div class="score">
+                            @for ($i = 0; $i < 5; $i++) @if ($i<$cart_item->score)
+                                <i class="fas fa-star text-warning"></i>
+                                @else
+
+                                <i class="fas fa-star"></i>
+                                @endif
+                                @endfor
+                        </div>/ {{$cart_item->score}}
                         <hr>
                         <h5>Rp.{{ number_format($cart_item->harga) }}</h5>
                     </div>

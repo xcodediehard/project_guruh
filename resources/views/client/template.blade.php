@@ -10,6 +10,7 @@
     <meta name="author" content="">
 
     @include('client.components.header')
+    @stack("style")
 </head>
 
 <body id="page-top text-dark">

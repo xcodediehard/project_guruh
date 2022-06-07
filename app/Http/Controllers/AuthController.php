@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Embed\Midtrans\StatusTransactionService;
+use App\Models\DetailBarang;
+use App\Models\DetailTransaksi;
 use App\Models\Pelanggan;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -55,6 +59,28 @@ class AuthController extends Controller
         return view("auth.client.login", compact("data"));
     }
 
+    private function validation_transaction()
+    {
+        $transaction = Transaksi::where("keterangan", "=", "transaction")->latest()->get();
+
+        $transaction_map = collect($transaction)->map(function ($transaction_record) {
+            $statusTransaction = new StatusTransactionService($transaction_record->payment_id);
+            $getStatusTransaction = $statusTransaction->getstatus();
+            if ($getStatusTransaction->transaction_status == "expire" || $getStatusTransaction->transaction_status == "cancel") {
+                Transaksi::where("id", "=", $transaction_record->id)->update([
+                    "keterangan" => "cancel"
+                ]);
+                $detail_list = DetailTransaksi::where("payment_id", "=", $transaction_record->payment_id)->latest()->get();
+                $detail_transaction = collect($detail_list)->map(function ($detail_record) {
+                    $detail_barang = DetailBarang::where("id", "=", $detail_record->id_detail_barang);
+                    $list_detail_barang = $detail_barang->first();
+                    $detail_barang->update([
+                        "stok" => ($list_detail_barang->stok + $detail_record->jumlah)
+                    ]);
+                });
+            }
+        });
+    }
     public function process_login_user(Request $request)
     {
         $request->validate([
@@ -64,6 +90,7 @@ class AuthController extends Controller
 
         $auth = ["email" => $request->email, 'password' => $request->password];
         if (Auth::guard('client')->attempt($auth)) {
+            $this->validation_transaction();
             return redirect()->route("home");
         } else {
             return redirect()->route("user.login");

@@ -11,17 +11,27 @@ use Illuminate\Support\Facades\DB;
 use App\Embed\Midtrans\CreateSnapTokenService;
 use App\Embed\Midtrans\StatusTransactionService;
 use App\Models\DetailTransaksi;
+use App\Models\Komentar;
 use App\Models\Transaksi;
 use stdClass;
 
 class HomeController extends Controller
 {
-    //
     public function home()
     {
+        $barang = collect(Barang::latest()->get())->map(function ($list_barang) {
+            $rate = collect(DB::select("SELECT AVG(c.rate) as rating FROM barangs d RIGHT JOIN detail_barangs a ON d.id = a.id_barang RIGHT JOIN detail_transaksis b ON a.id = b.id_detail_barang RIGHT JOIN komentars c ON b.id = c.id_detail_transaksi where d.id = '" . $list_barang->id . "'"))->first();
+            $data = [
+                "barang" => $list_barang->barang,
+                "gambar" => $list_barang->gambar,
+                "harga" => $list_barang->harga,
+                "score" => $rate->rating == null ? 1.00 : number_format((float)$rate->rating, 2, '.', '')
+            ];
+            return (object)$data;
+        });
         $data = [
             "title" => "Home",
-            "cart_list" => Barang::latest()->get(),
+            "cart_list" => $barang,
             "category_list" => Merek::latest()->get()
         ];
         return view("client.contents.home", compact("data"));
@@ -66,11 +76,20 @@ class HomeController extends Controller
     {
         $search = str_replace("+", " ", $title);
         $barang = Barang::where("barang", "LIKE", $search)->first();
-
+        $comment = DB::select(" SELECT
+                                a.komentar,a.status,a.rate,d.name,f.barang
+                                FROM `komentars` a 
+                                LEFT JOIN `detail_transaksis` b ON a.id_detail_transaksi=b.id 
+                                LEFT JOIN `transaksis` c ON b.payment_id = c.payment_id 
+                                LEFT JOIN pelanggans d ON c.id_pelanggan=d.id 
+                                LEFT JOIN detail_barangs e ON b.id_detail_barang = e.id 
+                                LEFT JOIN `barangs` f ON e.id_barang=f.id 
+                                WHERE f.id = '" . $barang->id . "' ORDER BY a.id DESC");
         $data = [
             "title" => "Cart",
             "cart_one" => Barang::where("barang", "LIKE", $search)->first(),
-            "category_list" => Merek::latest()->get()
+            "category_list" => Merek::latest()->get(),
+            "list_comment" => $comment
 
         ];
         return view("client.contents.cart", compact("data"));
@@ -233,7 +252,7 @@ class HomeController extends Controller
             $order_id = $request->detail_pemesanan;
             $format = [
                 "payment_id" => $order_id,
-                "keterangan" => "",
+                "keterangan" => "transaction",
                 "nama" => session("list_client")["name"],
                 "telpon" => session("list_client")["telpon"],
                 "alamat" => session("list_client")["alamat"],
@@ -259,12 +278,54 @@ class HomeController extends Controller
             $transaksi = Transaksi::create($format);
             $detail_transaksi = DetailTransaksi::insert($detail_pemesanan);
             if ($transaksi && $detail_transaksi) {
-                return redirect()->route("home");
+                return redirect()->route("status_transaksi");
             } else {
                 return redirect()->route("home");
             }
         } else {
             return redirect()->route("keranjang");
+        }
+    }
+
+    public function payment_checkout(Request $request)
+    {
+        $request->validate([
+            "name" => "required",
+            "telpon" => "required|max:15",
+            "alamat" => "required",
+            "book" => "required|exists:detail_barangs,id"
+        ]);
+        if ($request->detail_pemesanan != "") {
+            $order_id = $request->detail_pemesanan;
+            $list_checkout = session("data_cart_to_checkout")["list_checkout"];
+            $format = [
+                "payment_id" => $order_id,
+                "keterangan" => "transaction",
+                "nama" => $request->name,
+                "telpon" => $request->telpon,
+                "alamat" => $request->alamat,
+                "id_pelanggan" => auth()->guard("client")->user()->id,
+                "biaya" => $list_checkout["total"]
+            ];
+
+            $detail_pemesanan = [
+                "payment_id" => $order_id,
+                "id_detail_barang" =>  $list_checkout["code"],
+                "jumlah" => $list_checkout["jumlah"]
+            ];
+            DetailBarang::find($list_checkout["code"])->update([
+                "stok" => ($list_checkout["stok"] - $list_checkout["jumlah"])
+            ]);
+
+            $transaksi = Transaksi::create($format);
+            $detail_transaksi = DetailTransaksi::insert($detail_pemesanan);
+            if ($transaksi && $detail_transaksi) {
+                return redirect()->route("status_transaksi");
+            } else {
+                return redirect()->route("home");
+            }
+        } else {
+            return redirect()->route("cart_to_checkout");
         }
     }
 
@@ -276,9 +337,11 @@ class HomeController extends Controller
             $statusTransaksi = new StatusTransactionService($list->payment_id);
             $listStatusTransaksi = $statusTransaksi->getstatus();
 
-            $list_detail_pemesanan = DB::select("SELECT a.jumlah as jumlah, b.size as size,c.barang as barang ,c.harga as harga FROM `detail_transaksis` a LEFT JOIN `detail_barangs` b ON a.id_detail_barang = b.id LEFT JOIN `barangs` c ON b.id_barang = c.id WHERE a.payment_id = '" . $list->payment_id . "'");
+            $list_detail_pemesanan = DB::select("SELECT a.jumlah as jumlah, b.size as size,c.barang as barang ,c.harga as harga,a.id as barcode, a.payment_id as pay FROM `detail_transaksis` a LEFT JOIN `detail_barangs` b ON a.id_detail_barang = b.id LEFT JOIN `barangs` c ON b.id_barang = c.id WHERE a.payment_id = '" . $list->payment_id . "'");
             $collect_detail = collect($list_detail_pemesanan)->map(function ($detail) {
                 $detail_barang = [
+                    "comentar_number" => $detail->pay,
+                    "code" => $detail->barcode,
                     "barang" => $detail->barang,
                     "size" => $detail->size,
                     "jumlah" => $detail->jumlah,
@@ -292,6 +355,7 @@ class HomeController extends Controller
                 "alamat" => $list->alamat,
                 "telpon" => $list->telpon,
                 "biaya" => $list->biaya,
+                "keterangan" => $list->keterangan,
                 "payment_type" => $listStatusTransaksi->payment_type,
                 "transaction_status" => $listStatusTransaksi->transaction_status,
                 "bank" => $listStatusTransaksi->va_numbers[0]->bank,
@@ -307,6 +371,101 @@ class HomeController extends Controller
             "list_transaksi" => $map_detail_transkasi
         ];
         return view("client.contents.status", compact("data"));
+    }
+
+
+    public function pre_checkout(Request $request)
+    {
+        $request->validate([
+            "ukuran" => "required|exists:detail_barangs,id",
+            "jumlah" => "required",
+        ]);
+
+        $detail_barang = collect(DB::select("SELECT *, IF($request->jumlah > a.stok,'full','avail') as available, ($request->jumlah * b.harga) as gross_amount,a.id as cart_code FROM detail_barangs a LEFT JOIN barangs b ON a.id_barang = b.id WHERE a.id = '" . $request->ukuran . "'"))->first();
+
+        $list_checkout = [
+            "barang" => $detail_barang->barang,
+            "stok" => $detail_barang->stok,
+            "code" => $detail_barang->cart_code,
+            "ukuran" => $detail_barang->size,
+            "harga" => $detail_barang->harga,
+            "jumlah" => $request->jumlah,
+            "total" => $detail_barang->gross_amount,
+            "gambar" => $detail_barang->gambar
+        ];
+
+        if ($detail_barang->available == "avail") {
+            $item_detail = [
+                "id" => rand(),
+                "price" => $detail_barang->harga,
+                "quantity" => $request->jumlah,
+                "name" => $detail_barang->barang,
+            ];
+            $order = [
+                'transaction_details' => [
+                    'order_id' => rand(),
+                    'gross_amount' => $detail_barang->gross_amount,
+                ],
+                "item_details" => array($item_detail),
+                'customer_details' => [
+                    'first_name' => auth()->guard("client")->user()->name,
+                    'email' => auth()->guard("client")->user()->email,
+                    'phone' => auth()->guard("client")->user()->telpon,
+                ]
+            ];
+            $data = [
+                "title" => "Checkout",
+                "client" => [
+                    'name' => auth()->guard("client")->user()->name,
+                    'telpon' => auth()->guard("client")->user()->telpon,
+                    'alamat' => auth()->guard("client")->user()->alamat,
+                ],
+                "list_checkout" => $list_checkout,
+                "order" => $order
+            ];
+            session()->forget("data_cart_to_checkout");
+            session(["data_cart_to_checkout" => $data]);
+            return redirect()->route("cart_to_checkout");
+        } else {
+            return redirect()->back();
+        }
+    }
+
+    public function cart_to_checkout()
+    {
+        $midtrans = new CreateSnapTokenService(session("data_cart_to_checkout")["order"]);
+        $snapToken = $midtrans->getSnapToken();
+        session(["snap" => $snapToken]);
+        $data = session("data_cart_to_checkout");
+        $snap = session("snap");
+        return view("client.contents.pre_checkout", compact('data', "snap"));
+    }
+
+
+    public function send_comment(Request $request)
+    {
+        $request->validate([
+            "barang.*" => "required|exists:detail_transaksis,id",
+            "rating_score" => "required",
+            "comment" => "required",
+            "comentar_number" => "exists:transaksis,payment_id"
+        ]);
+
+        foreach ($request->barang as $key => $value) {
+            Komentar::create([
+                "id_detail_transaksi" => $value,
+                "rate" => $request->rating_score,
+                "status" => "1",
+                "komentar" => $request->comment
+            ]);
+        }
+
+        $transaksi = Transaksi::where("payment_id", $request->comentar_number)->update(["keterangan" => "validation"]);
+        if ($transaksi) {
+            return redirect()->route("status_transaksi");
+        } else {
+            return redirect()->route("status_transaksi");
+        }
     }
     public function show_snap()
     {
