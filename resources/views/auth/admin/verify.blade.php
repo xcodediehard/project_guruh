@@ -9,35 +9,31 @@
             <div class="card-body p-0">
                 <!-- Nested Row within Card Body -->
                 <div class="row">
-                    <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                    <img src="{{ asset('illustration/verify.png') }}" alt="{{ asset('illustration/verify.png') }}"
+                        class="w-50 mx-auto">
                     <div class="col-lg-6">
                         <div class="p-5">
                             <div class="text-center">
                                 <h1 class="h4 text-gray-900 mb-4">Let's Verify</h1>
                             </div>
-                            <form class="user">
+                            <form class="user" method="POST" action="{{ route('auth.process_verify') }}">
+                                @csrf
+                                <input type="hidden" name="unicode" value="{{ $data["code"] }}">
                                 <div class="form-group">
-                                    <input type="email" class="form-control form-control-user" id="exampleInputEmail"
-                                        aria-describedby="emailHelp" placeholder="Enter Email Address...">
+                                    <input type="password" name="password" minlength="8" class="form-control form-control-user 
+                                            @include('components.invalid',['error'=>'confirm_password'])
+                                            " id="password" placeholder="Password">
+                                    @include('components.alert',['error'=>'password'])
                                 </div>
                                 <div class="form-group">
-                                    <input type="password" class="form-control form-control-user"
-                                        id="exampleInputPassword" placeholder="Password">
+                                    <input type="password" name="confirm_password" class="form-control form-control-user 
+                                            @include('components.Invalid',['error'=>'confirm_password'])
+                                            " id="confirm_password" placeholder="Konfirmasi Password" minlength="8">
+                                    @include('components.alert',['error'=>'confirm_password'])
                                 </div>
-                                <div class="form-group">
-                                    <div class="custom-control custom-checkbox small">
-                                        <input type="checkbox" class="custom-control-input" id="customCheck">
-                                        <label class="custom-control-label" for="customCheck">Remember
-                                            Me</label>
-                                    </div>
-                                </div>
-                                <a href="index.html" class="btn btn-primary btn-user btn-block">
-                                    Login
-                                </a>
-                                <hr>
-                                {{-- <a href="index.html" class="btn btn-google btn-user btn-block">
-                                    <i class="fab fa-google fa-fw"></i> Login with Google
-                                </a> --}}
+                                <button type="submit" class="btn btn-primary btn-user btn-block">
+                                    Set Password
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -48,4 +44,20 @@
     </div>
 
 </div>
+
+<script>
+    var password = document.getElementById("password")
+    var confirm_password = document.getElementById("confirm_password");
+
+function validatePassword(){
+  if(password.value != confirm_password.value) {
+    confirm_password.setCustomValidity("Passwords Don't Match");
+  } else {
+    confirm_password.setCustomValidity('');
+  }
+}
+
+password.onchange = validatePassword;
+confirm_password.onkeyup = validatePassword;
+</script>
 @endsection

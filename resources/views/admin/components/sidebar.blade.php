@@ -38,10 +38,10 @@
             <div class="bg-white py-2 collapse-inner rounded">
                 <h6 class="collapse-header">Custom Components:</h6>
                 <a class="collapse-item" href="{{ route('staff.view') }}">Staff</a>
-                <a class="collapse-item" href="{{ route('thumbnile.view') }}">Thumbnile</a>
+                {{-- <a class="collapse-item" href="{{ route('thumbnile.view') }}">Thumbnile</a> --}}
                 <a class="collapse-item" href="{{ route('merek.view') }}">Merek</a>
                 <a class="collapse-item" href="{{ route('barang.view') }}">Barang</a>
-                <a class="collapse-item" href="{{ route('promo.view') }}">Promo</a>
+                {{-- <a class="collapse-item" href="{{ route('promo.view') }}">Promo</a> --}}
                 {{-- <a class="collapse-item" href="{{ route('kategori_transaksi.view') }}">Kategori Transaksi</a> --}}
             </div>
         </div>

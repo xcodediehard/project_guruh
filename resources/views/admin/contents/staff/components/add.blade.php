@@ -1,3 +1,4 @@
+@csrf
 <div class="form-group">
     <label for="exampleInputEmail1">Nama</label>
     <input type="text" class="form-control  @include('components.invalid',['error'=>'name'])" id="exampleInputEmail1"

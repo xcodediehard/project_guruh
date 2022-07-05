@@ -51,7 +51,7 @@
                                 @include('components.modal',[
                                 "modal"=>[
                                 "color"=>"danger",
-                                "id"=>"delete_merek".$item->id,
+                                "id"=>"delete_staff".$item->id,
                                 "action"=>"Delete",
                                 "url"=>"#",
                                 "content"=>"admin.contents.staff.components.delete",

@@ -50,7 +50,9 @@ Route::prefix('/auth')->group(function () {
     Route::get('/login', [AuthController::class, "login_admin"])->name('auth.login');
     Route::post('/process_login', [AuthController::class, "process_login_admin"])->name('auth.process_login');
     Route::get('/forgot_password', [AuthController::class, "forgot_password_admin"])->name('auth.forgot_password');
-    Route::get('/verify', [AuthController::class, "verify_admin"])->name('auth.verify');
+    Route::get('/verify/{id}', [AuthController::class, "verify_admin"])->name('auth.verify');
+    Route::post('/process_forgot_password', [AuthController::class, "process_forgot_password_admin"])->name('auth.process_forgot_password');
+    Route::post('/process_verify', [AuthController::class, "process_verify_admin"])->name('auth.process_verify');
     Route::get('/logout', [AuthController::class, "logout_admin"])->name('auth.logout');
 });
 
@@ -59,9 +61,11 @@ Route::prefix('/user')->group(function () {
     Route::get('/login', [AuthController::class, "login_user"])->name('user.login');
     Route::post('/process_login_user', [AuthController::class, "process_login_user"])->name('user.process_login');
     Route::get('/forgot_password', [AuthController::class, "forgot_password_user"])->name('user.forgot_password');
-    Route::get('/verify', [AuthController::class, "verify_user"])->name('user.verify');
+    Route::get('/verify/{id}', [AuthController::class, "validation_user"])->name('user.verify');
     Route::get('/register', [AuthController::class, "register_user"])->name('user.register');
     Route::post('/process_register', [AuthController::class, "process_register"])->name('user.process_register');
+    Route::post('/process_forgot_password', [AuthController::class, "process_forgot_password"])->name('user.process_forgot_password');
+    Route::post('/process_verify', [AuthController::class, "process_verify"])->name('user.process_verify');
     Route::get('/user_logout', [AuthController::class, "logout_user"])->name('user.logout');
 });
 
@@ -69,6 +73,9 @@ Route::prefix('/user')->group(function () {
 Route::middleware(['auth:admin'])->group(function () {
     Route::prefix('/staff')->group(function () {
         Route::get('/', [AdminController::class, "index"])->name('staff.view');
+        Route::post('/insert', [AdminController::class, "store"])->name('staff.insert');
+        Route::delete('/delete/{staff}', [AdminController::class, "destroy"])->name('staff.delete');
+        // Route::post('/forgot_password', [AdminController::class, "index"])->name('staff.view');
     });
     Route::prefix('/merek')->group(function () {
         Route::get('/', [MerekController::class, "index"])->name('merek.view');

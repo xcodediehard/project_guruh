@@ -9,7 +9,8 @@
             <div class="card-body p-0">
                 <!-- Nested Row within Card Body -->
                 <div class="row">
-                    <div class="col-lg-6 d-none d-lg-block bg-password-image"></div>
+                    <img src="{{ asset('illustration/forgot_password.png') }}"
+                        alt="{{ asset('illustration/forgot_password.png') }}" class="w-50 mx-auto">
                     <div class="col-lg-6">
                         <div class="p-5">
                             <div class="text-center">
@@ -17,10 +18,14 @@
                                 <p class="mb-4">We get it, stuff happens. Just enter your email address below
                                     and we'll send you a link to reset your password!</p>
                             </div>
-                            <form class="user">
+                            <form class="user" method="POST" action="{{ route('user.process_forgot_password') }}">
+                                @csrf
                                 <div class="form-group">
-                                    <input type="email" class="form-control form-control-user" id="exampleInputEmail"
-                                        aria-describedby="emailHelp" placeholder="Enter Email Address..." name="email" required>
+                                    <input type="email" class="form-control form-control-user  
+                                    @include('components.invalid',['error'=>'confirm_password'])
+                                    " id="exampleInputEmail" aria-describedby="emailHelp"
+                                        placeholder="Enter Email Address..." name="email" required>
+                                    @include('components.alert',['error'=>'email'])
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-user btn-block">
                                     Reset Password
