@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreKomentarRequest;
 use App\Http\Requests\UpdateKomentarRequest;
 use App\Models\Komentar;
+use Illuminate\Support\Facades\DB;
 
 class KomentarController extends Controller
 {
@@ -15,7 +16,12 @@ class KomentarController extends Controller
      */
     public function index()
     {
-        //
+        $list_komentar = DB::select('SELECT a.id as id_komentar, a.*, d.*, f.barang FROM  komentars a LEFT JOIN detail_transaksis b ON a.id_detail_transaksi = b.id LEFT JOIN transaksis c ON b.payment_id = c.payment_id LEFT JOIN pelanggans d ON c.id_pelanggan = d.id LEFT JOIN detail_barangs e ON b.id_detail_barang = e.id LEFT JOIN barangs f ON e.id_barang = f.id');
+        $data = [
+            "title" => "Komentar",
+            "list" => $list_komentar
+        ];
+        return view("admin.contents.komentar.template", compact('data'));
     }
 
     /**

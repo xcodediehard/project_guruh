@@ -41,6 +41,7 @@
                 {{-- <a class="collapse-item" href="{{ route('thumbnile.view') }}">Thumbnile</a> --}}
                 <a class="collapse-item" href="{{ route('merek.view') }}">Merek</a>
                 <a class="collapse-item" href="{{ route('barang.view') }}">Barang</a>
+                <a class="collapse-item" href="{{ route('komentar.view') }}">Komentar</a>
                 {{-- <a class="collapse-item" href="{{ route('promo.view') }}">Promo</a> --}}
                 {{-- <a class="collapse-item" href="{{ route('kategori_transaksi.view') }}">Kategori Transaksi</a> --}}
             </div>

@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\KategoriTransaksiController;
+use App\Http\Controllers\KomentarController;
 use App\Http\Controllers\MerekController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ThumbnileController;
@@ -100,5 +101,11 @@ Route::middleware(['auth:admin'])->group(function () {
     // });
     Route::prefix('/thumbnile')->group(function () {
         Route::get('/', [ThumbnileController::class, "index"])->name('thumbnile.view');
+    });
+    Route::prefix('/komentar')->group(function () {
+        Route::get('/', [KomentarController::class, "index"])->name('komentar.view');
+        Route::post('/insert', [KomentarController::class, "store"])->name('komentar.insert');
+        Route::put('/update/{komentar}', [KomentarController::class, "update"])->name('komentar.update');
+        Route::delete('/delete/{komentar}', [KomentarController::class, "destroy"])->name('komentar.delete');
     });
 });
