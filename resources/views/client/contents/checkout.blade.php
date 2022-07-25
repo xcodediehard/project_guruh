@@ -37,8 +37,21 @@
                     </div>
                 </li>
                 @endforeach
+                <li class="list-group-item d-flex justify-content-start">
+                    <div class="detail-payment ml-2 ">
+                        <h4 class="card-title">
+                            Pengiriman
+                            {{$data["list_packet"]->provinsi.", ".$data["list_packet"]->city.", ".$data["list_packet"]->alamat." Via ".strtoupper($data["list_packet"]->kurir." ".$data["list_packet"]->destination)}}
+                        </h4>
+                        <b> (Rp. {{number_format($data["list_packet"]->paket)}})</b>
+                        <hr>
+                        <h3>Rp.{{number_format($data["list_packet"]->paket)}}</h3>
+                    </div>
+                </li>
                 <li class="list-group-item d-flex justify-content-end">
-                    <h4>Total : Rp.{{ number_format($data["list_checkout"]->sum("pembayaran")) }}</h4>
+                    <h4>Total :
+                        Rp.{{ number_format($data["list_checkout"]->sum("pembayaran")+$data["list_packet"]->paket) }}
+                    </h4>
                 </li>
             </ul>
         </div>

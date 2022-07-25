@@ -10,17 +10,6 @@
     </div>
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">DataTables {{ $data["title"] }}</h6>
-        <div class="mt-2">
-            @include('components.modal',[
-            "modal"=>[
-            "color"=>"primary",
-            "id"=>"add_merek",
-            "action"=>"Add",
-            "url"=>"#",
-            "content"=>"admin.contents.staff.components.add",
-            "show_title"=>True
-            ]])
-        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -28,34 +17,47 @@
                 <thead>
                     <tr>
                         <th>No</th>
+                        <th>Status Transaksi</th>
                         <th>Nama</th>
-                        <th>Email</th>
-                        <th>Aksi</th>
+                        <th>Alamat</th>
+                        <th>Tanggal</th>
+                        <th>Total</th>
+                        <th>Detail</th>
                     </tr>
                 </thead>
                 <tfoot>
                     <tr>
                         <th>No</th>
+                        <th>Status Transaksi</th>
                         <th>Nama</th>
-                        <th>Email</th>
-                        <th>Aksi</th>
-                    <tr>
+                        <th>Alamat</th>
+                        <th>Tanggal</th>
+                        <th>Total</th>
+                        <th>Detail</th>
+
                 </tfoot>
                 <tbody>
                     @foreach ($data['list'] as $item)
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $item->name }}</td>
-                        <td>{{ $item->email }}</td>
+                        <td>{{$loop->iteration}}</td>
+                        <td>
+                            <div class="btn btn-{{$item->color}}" role="alert">
+                                {{$item->transaction_status}}
+                            </div>
+                        </td>
+                        <td>{{$item->nama}}</td>
+                        <td>{{$item->alamat}} ({{$item->telpon}})</td>
+                        <td>{{$item->tanggal_pesan}} </td>
+                        <td>Rp.{{number_format($item->gross_amount)}}</td>
                         <td>
                             <div class="mt-2">
                                 @include('components.modal',[
                                 "modal"=>[
-                                "color"=>"danger",
-                                "id"=>"delete_staff".$item->id,
-                                "action"=>"Delete",
-                                "url"=>"#",
-                                "content"=>"admin.contents.staff.components.delete",
+                                "color"=>"primary",
+                                "id"=>"delete_komentar".$item->id,
+                                "action"=>"Detail",
+                                "url"=>"",
+                                "content"=>"admin.contents.informasi_transaksi.components.detail_transaksi",
                                 "show_title"=>False
                                 ]])
                             </div>

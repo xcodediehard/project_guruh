@@ -43,6 +43,7 @@
                         <th>Komentar</th>
                         <th>Rate</th>
                         <th>Aksi</th>
+                    <tr>
                 </tfoot>
                 <tbody>
                     @foreach ($data['list'] as $item)

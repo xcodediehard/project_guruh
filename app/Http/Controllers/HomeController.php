@@ -10,9 +10,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Embed\Midtrans\CreateSnapTokenService;
 use App\Embed\Midtrans\StatusTransactionService;
+use App\Models\City;
 use App\Models\DetailTransaksi;
 use App\Models\Komentar;
+use App\Models\Provice;
+use App\Models\StatusTransaksi;
 use App\Models\Transaksi;
+use Kavist\RajaOngkir\Facades\RajaOngkir;
 use stdClass;
 
 class HomeController extends Controller
@@ -146,11 +150,35 @@ class HomeController extends Controller
                 "nama" => auth()->guard("client")->user()->name,
                 "alamat" => auth()->guard("client")->user()->alamat,
                 "telpon" => auth()->guard("client")->user()->telpon,
+                "provinsi" => Provice::all(),
+                "kurir" => (object) [
+                    "jne" => "JNE",
+                    "pos" => "POS",
+                    "tiki" => "TIKI"
+                ]
             ]
         ];
         return view("client.contents.keranjang", compact("data"));
     }
 
+    public function getCities($id)
+    {
+        $city = City::where('province_id', $id)->pluck('name', 'city_id');
+        return response()->json($city);
+    }
+
+    public function check_ongkir(Request $request)
+    {
+        $cost = RajaOngkir::ongkosKirim([
+            'origin'        => 135, // ID kota/kabupaten asal
+            'destination'   => $request->city_destination, // ID kota/kabupaten tujuan
+            'weight'        => $request->weight, // berat barang dalam gram
+            'courier'       => $request->courier // kode kurir pengiriman: ['jne', 'tiki', 'pos'] untuk starter
+        ])->get();
+
+
+        return response()->json($cost);
+    }
 
     public function checkout()
     {
@@ -161,7 +189,8 @@ class HomeController extends Controller
                 "title" => "Checkout",
                 "list_checkout" => session("list_cart"),
                 "snap" => $snapToken,
-                "client" => session("list_client")
+                "client" => session("list_client"),
+                "list_packet" => session("list_packet")
             ];
             return view("client.contents.checkout", compact("data"));
         } else {
@@ -174,7 +203,12 @@ class HomeController extends Controller
             "cart.*" => 'required|exists:keranjangs,id',
             "name" => "required",
             "telpon" => "required",
-            "alamat" => "required"
+            "alamat" => "required",
+            "provinsi" => "required|exists:provices,id",
+            "city" => "required|exists:cities,id",
+            "kurir" => "required",
+            "paket" => "required",
+            "paket_destination" => "required"
         ]);
         $collection_checkout = collect($request->cart)->map(function ($id) {
             $keranjang = DB::select("
@@ -199,6 +233,24 @@ class HomeController extends Controller
             return $keranjang[0];
         });
 
+        $address = DB::select("SELECT a.name as city_name ,b.name as province_name FROM cities a LEFT JOIN provices b ON a.province_id=b.id WHERE a.id = $request->city");
+
+        $address_list = (object)[
+            "provinsi" => $address[0]->province_name,
+            "city" => $address[0]->city_name,
+            "alamat" => $request->alamat,
+            "paket" => $request->paket,
+            "destination" => $request->paket_destination,
+            "kurir" => $request->kurir
+        ];
+        $name_destination = $request->kurir . "(" . $request->paket_destination . ") ";
+        $item_detination = [
+            "id" => rand(),
+            "price" => $request->paket,
+            "quantity" => 1,
+            "name" => $name_destination,
+        ];
+
         $item_details = collect($collection_checkout)->map(function ($data_item) {
             $item_detail = [
                 "id" => rand(),
@@ -209,25 +261,31 @@ class HomeController extends Controller
             return $item_detail;
         });
 
+        $list_item = $item_details->toArray();
+        array_push($list_item, $item_detination);
+        $cost_all = $collection_checkout->sum("pembayaran") + $request->paket;
         $order = [
             'transaction_details' => [
                 'order_id' => rand(),
-                'gross_amount' => $collection_checkout->sum("pembayaran"),
+                'gross_amount' => $cost_all,
             ],
-            "item_details" => $item_details->toArray(),
+            "item_details" => $list_item,
             'customer_details' => [
                 'first_name' => $request->name,
                 'email' => auth()->guard("client")->user()->email,
                 'phone' => $request->telpon,
             ]
         ];
+
+
         if (!empty(session("list_cart"))) {
             session()->forget("list_cart");
+            session()->forget("list_packet");
             session()->forget("list_client");
             session()->forget("order_list");
-            session(['list_cart' => $collection_checkout, 'list_client' => $request->only(["name", "telpon", "alamat"]), "order_list" => $order]);
+            session(['list_cart' => $collection_checkout, "list_packet" => $address_list, 'list_client' => $request->only(["name", "telpon", "alamat"]), "order_list" => $order]);
         } else {
-            session(['list_cart' => $collection_checkout, 'list_client' => $request->only(["name", "telpon", "alamat"]), "order_list" => $order]);
+            session(['list_cart' => $collection_checkout, "list_packet" => $address_list, 'list_client' => $request->only(["name", "telpon", "alamat"]), "order_list" => $order]);
         }
 
         return redirect()->route("checkout");
@@ -255,7 +313,7 @@ class HomeController extends Controller
                 "keterangan" => "transaction",
                 "nama" => session("list_client")["name"],
                 "telpon" => session("list_client")["telpon"],
-                "alamat" => session("list_client")["alamat"],
+                "alamat" => session("list_packet")->provinsi . ", " . session("list_packet")->city . ", " . session("list_client")["alamat"],
                 "id_pelanggan" => auth()->guard("client")->user()->id,
                 "biaya" => session("list_cart")->sum("pembayaran")
             ];
@@ -277,7 +335,21 @@ class HomeController extends Controller
 
             $transaksi = Transaksi::create($format);
             $detail_transaksi = DetailTransaksi::insert($detail_pemesanan);
-            if ($transaksi && $detail_transaksi) {
+            $status_pengiriman = StatusTransaksi::insert([
+                [
+                    "id_kategori_transaksi" => "1",
+                    "id_transaksi" => $transaksi->id,
+                    "status" => "0",
+                    "keterangan" => strtoupper(session("list_packet")->kurir) . " paket " . session("list_packet")->destination
+                ],
+                [
+                    "id_kategori_transaksi" => "2",
+                    "id_transaksi" => $transaksi->id,
+                    "status" => "0",
+                    "keterangan" => ""
+                ]
+            ]);
+            if ($transaksi && $detail_transaksi && $status_pengiriman) {
                 return redirect()->route("status_transaksi");
             } else {
                 return redirect()->route("home");
@@ -287,6 +359,54 @@ class HomeController extends Controller
         }
     }
 
+
+
+    public function status_transaksi()
+    {
+        $list_detail_transkasi = Transaksi::where("id_pelanggan", "=", auth()->guard("client")->user()->id)->latest()->get();
+        $map_detail_transkasi = collect($list_detail_transkasi)->map(function ($list) {
+            $statusTransaksi = new StatusTransactionService($list->payment_id);
+            $listStatusTransaksi = $statusTransaksi->getstatus();
+
+            $list_detail_pemesanan = DB::select("SELECT a.jumlah as jumlah, b.size as size,c.barang as barang ,c.harga as harga,a.id as barcode, a.payment_id as pay FROM `detail_transaksis` a LEFT JOIN `detail_barangs` b ON a.id_detail_barang = b.id LEFT JOIN `barangs` c ON b.id_barang = c.id WHERE a.payment_id = '" . $list->payment_id . "'");
+            $collect_detail = collect($list_detail_pemesanan)->map(function ($detail) {
+                $detail_barang = [
+                    "comentar_number" => $detail->pay,
+                    "code" => $detail->barcode,
+                    "barang" => $detail->barang,
+                    "size" => $detail->size,
+                    "jumlah" => $detail->jumlah,
+                    "harga" => $detail->harga,
+                ];
+                return $detail_barang;
+            });
+
+            $record = [
+                "nama" => $list->nama,
+                "alamat" => $list->alamat,
+                "telpon" => $list->telpon,
+                "biaya" => $listStatusTransaksi->gross_amount,
+                "keterangan" => $list->keterangan,
+                "payment_type" => $listStatusTransaksi->payment_type,
+                "transaction_status" => $listStatusTransaksi->transaction_status,
+                "bank" => $listStatusTransaksi->va_numbers[0]->bank,
+                "va_number" => $listStatusTransaksi->va_numbers[0]->va_number,
+                "detail_barang" => $collect_detail
+            ];
+            return $record;
+        });
+
+
+        $data = [
+            "title" => "Status Transaksi",
+            "list_transaksi" => $map_detail_transkasi
+        ];
+        return view("client.contents.status", compact("data"));
+    }
+
+
+
+    // CHECKOUT
     public function payment_checkout(Request $request)
     {
         $request->validate([
@@ -330,51 +450,97 @@ class HomeController extends Controller
     }
 
 
-    public function status_transaksi()
+    public function pre_checkout(Request $request)
     {
-        $list_detail_transkasi = Transaksi::where("id_pelanggan", "=", auth()->guard("client")->user()->id)->latest()->get();
-        $map_detail_transkasi = collect($list_detail_transkasi)->map(function ($list) {
-            $statusTransaksi = new StatusTransactionService($list->payment_id);
-            $listStatusTransaksi = $statusTransaksi->getstatus();
 
-            $list_detail_pemesanan = DB::select("SELECT a.jumlah as jumlah, b.size as size,c.barang as barang ,c.harga as harga,a.id as barcode, a.payment_id as pay FROM `detail_transaksis` a LEFT JOIN `detail_barangs` b ON a.id_detail_barang = b.id LEFT JOIN `barangs` c ON b.id_barang = c.id WHERE a.payment_id = '" . $list->payment_id . "'");
-            $collect_detail = collect($list_detail_pemesanan)->map(function ($detail) {
-                $detail_barang = [
-                    "comentar_number" => $detail->pay,
-                    "code" => $detail->barcode,
-                    "barang" => $detail->barang,
-                    "size" => $detail->size,
-                    "jumlah" => $detail->jumlah,
-                    "harga" => $detail->harga,
-                ];
-                return $detail_barang;
-            });
+        $provinsi = collect(DB::select("SELECT * FROM provices WHERE province_id = " . $request->provinsi))->first();
+        $city = collect(DB::select("SELECT * FROM `cities` WHERE city_id =" . $request->city))->first();
 
-            $record = [
-                "nama" => $list->nama,
-                "alamat" => $list->alamat,
-                "telpon" => $list->telpon,
-                "biaya" => $list->biaya,
-                "keterangan" => $list->keterangan,
-                "payment_type" => $listStatusTransaksi->payment_type,
-                "transaction_status" => $listStatusTransaksi->transaction_status,
-                "bank" => $listStatusTransaksi->va_numbers[0]->bank,
-                "va_number" => $listStatusTransaksi->va_numbers[0]->va_number,
-                "detail_barang" => $collect_detail
-            ];
-            return $record;
-        });
+        $remap = $request->merge(["city_name" => $city->name, "province_name" => $provinsi->name]);
+        // dd($remap->paket_destination);
 
+        $detail_barang = (object)session("data_cart_to_checkout")["list_checkout"];
 
-        $data = [
-            "title" => "Status Transaksi",
-            "list_transaksi" => $map_detail_transkasi
+        $item_detail = [
+            [
+                "id" => rand(),
+                "price" => $detail_barang->harga,
+                "quantity" => $detail_barang->jumlah,
+                "name" => $detail_barang->barang,
+            ],
+            [
+                "id" => rand(),
+                "price" => $remap->paket,
+                "quantity" => 1,
+                "name" => $remap->paket_destination,
+            ],
         ];
-        return view("client.contents.status", compact("data"));
+
+        $total = collect($item_detail)->map(function ($response) {
+            return ($response["price"] * $response["quantity"]);
+        })->sum();
+        $order = [
+            'transaction_details' => [
+                'order_id' => rand(),
+                'gross_amount' => $total,
+            ],
+            "item_details" => $item_detail,
+            'customer_details' => [
+                'first_name' => auth()->guard("client")->user()->name,
+                'email' => auth()->guard("client")->user()->email,
+                'phone' => auth()->guard("client")->user()->telpon,
+            ]
+        ];
+        $data = [
+            "title" => "Checkout",
+            "client" => [
+                'name' => auth()->guard("client")->user()->name,
+                'telpon' => auth()->guard("client")->user()->telpon,
+                'alamat' => $remap->alamat,
+                "provinsi" => $remap->province_name,
+                "city" => $remap->city_name
+            ],
+            "list_checkout" => $detail_barang,
+            "order" => $order
+        ];
+        session()->forget("data_cart_to_checkout");
+        session(["data_cart_to_checkout" => $data]);
+        return redirect()->route("validation_payment");
     }
 
+    public function validation_payment()
+    {
+        $midtrans = new CreateSnapTokenService(session("data_cart_to_checkout")["order"]);
+        $snapToken = $midtrans->getSnapToken();
+        $data = session("data_cart_to_checkout");
+        $snap = $snapToken;
+        $address = [
+            "provinsi" => Provice::all(),
+            "kurir" => (object) [
+                "jne" => "JNE",
+                "pos" => "POS",
+                "tiki" => "TIKI"
+            ]
+        ];
+        return view("client.contents.validation_checkout", compact('data', "snap", "address"));
+    }
 
-    public function pre_checkout(Request $request)
+    public function cart_to_checkout()
+    {
+
+        $data = session("data_cart_to_checkout");
+        $address = [
+            "provinsi" => Provice::all(),
+            "kurir" => (object) [
+                "jne" => "JNE",
+                "pos" => "POS",
+                "tiki" => "TIKI"
+            ]
+        ];
+        return view("client.contents.pre_checkout", compact('data', "address"));
+    }
+
+    public function validation_checkout(Request $request)
     {
         $request->validate([
             "ukuran" => "required|exists:detail_barangs,id",
@@ -393,26 +559,7 @@ class HomeController extends Controller
             "total" => $detail_barang->gross_amount,
             "gambar" => $detail_barang->gambar
         ];
-
         if ($detail_barang->available == "avail") {
-            $item_detail = [
-                "id" => rand(),
-                "price" => $detail_barang->harga,
-                "quantity" => $request->jumlah,
-                "name" => $detail_barang->barang,
-            ];
-            $order = [
-                'transaction_details' => [
-                    'order_id' => rand(),
-                    'gross_amount' => $detail_barang->gross_amount,
-                ],
-                "item_details" => array($item_detail),
-                'customer_details' => [
-                    'first_name' => auth()->guard("client")->user()->name,
-                    'email' => auth()->guard("client")->user()->email,
-                    'phone' => auth()->guard("client")->user()->telpon,
-                ]
-            ];
             $data = [
                 "title" => "Checkout",
                 "client" => [
@@ -421,7 +568,6 @@ class HomeController extends Controller
                     'alamat' => auth()->guard("client")->user()->alamat,
                 ],
                 "list_checkout" => $list_checkout,
-                "order" => $order
             ];
             session()->forget("data_cart_to_checkout");
             session(["data_cart_to_checkout" => $data]);
@@ -431,16 +577,7 @@ class HomeController extends Controller
         }
     }
 
-    public function cart_to_checkout()
-    {
-        $midtrans = new CreateSnapTokenService(session("data_cart_to_checkout")["order"]);
-        $snapToken = $midtrans->getSnapToken();
-        session(["snap" => $snapToken]);
-        $data = session("data_cart_to_checkout");
-        $snap = session("snap");
-        return view("client.contents.pre_checkout", compact('data', "snap"));
-    }
-
+    // END CHECKOUT
 
     public function send_comment(Request $request)
     {

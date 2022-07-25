@@ -47,6 +47,7 @@
                         <th>Ukuran</th>
                         <th>Stok</th>
                         <th>Aksi</th>
+                    <tr>
                 </tfoot>
                 <tbody>
                     @foreach ($data['list'] as $item)

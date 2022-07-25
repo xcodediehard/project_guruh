@@ -65,7 +65,7 @@
 
     <!-- Nav Item - Tables -->
     <li class="nav-item ">
-        <a class="nav-link" href="tables.html">
+        <a class="nav-link" href="{{ route('informasi.transaksi') }}">
             <i class="fas fa-fw fa-money-bill-wave"></i>
             <span>Informasi Transaksi</span></a>
     </li>

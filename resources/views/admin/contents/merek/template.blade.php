@@ -37,6 +37,7 @@
                         <th>no</th>
                         <th>Merek</th>
                         <th>Aksi</th>
+                    <tr>
                 </tfoot>
                 <tbody>
                     @foreach ($data["list"] as $item)

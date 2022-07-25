@@ -161,7 +161,7 @@ $(".add_keranjang").on("click", function () {
 
 // CLICK CHECKOUT
 $(".add_checkout").on("click", function () {
-    $("form").attr("action", "{{route('pre_checkout')}}");
+    $("form").attr("action", "{{route('validation_checkout')}}");
 });
 
 $("input[name='ukuran']").on("click", function () {

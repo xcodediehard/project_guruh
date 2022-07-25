@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateStatusTransaksisTable extends Migration
+class CreateProvicesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,10 @@ class CreateStatusTransaksisTable extends Migration
      */
     public function up()
     {
-        Schema::create('status_transaksis', function (Blueprint $table) {
+        Schema::create('provices', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger("id_transaksi")->index();
-            $table->unsignedBigInteger("id_kategori_transaksi")->index();
-            $table->text("keterangan");
-            $table->enum("status", [0, 1]);
+            $table->unsignedInteger('province_id');
+            $table->string('name');
             $table->timestamps();
         });
     }
@@ -30,6 +28,6 @@ class CreateStatusTransaksisTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('status_transaksis');
+        Schema::dropIfExists('provices');
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\KomentarController;
 use App\Http\Controllers\MerekController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ThumbnileController;
+use App\Http\Controllers\TransaksiController;
 use Illuminate\Routing\RouteGroup;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,8 @@ Route::middleware(['auth:client'])->group(function () {
     Route::post('/checkouts', [HomeController::class, "pre_checkout"])->name("pre_checkout");
     Route::get('/cart_to_checkout', [HomeController::class, "cart_to_checkout"])->name("cart_to_checkout");
     Route::post('/send_comment', [HomeController::class, "send_comment"])->name("send_comment");
+    Route::get('/validation_payment', [HomeController::class, "validation_payment"])->name("validation_payment");
+    Route::post('/validation_checkout', [HomeController::class, "validation_checkout"])->name("validation_checkout");
 });
 
 // Admin
@@ -96,9 +99,10 @@ Route::middleware(['auth:admin'])->group(function () {
         Route::get('/update/{promo}', [PromoController::class, "update"])->name('promo.update');
         Route::get('/delete/{barang}', [PromoController::class, "destroy"])->name('promo.delete');
     });
-    // Route::prefix('/kategori_transaksi')->group(function () {
-    //     Route::get('/', [KategoriTransaksiController::class, "index"])->name('kategori_transaksi.view');
-    // });
+    Route::prefix('/transaksi')->group(function () {
+        Route::get('/informasi', [TransaksiController::class, "informasi_transaksi"])->name('informasi.transaksi');
+        Route::get('/pengiriman', [TransaksiController::class, "informasi_pengiriman"])->name('pengiriman.transaksi');
+    });
     Route::prefix('/thumbnile')->group(function () {
         Route::get('/', [ThumbnileController::class, "index"])->name('thumbnile.view');
     });

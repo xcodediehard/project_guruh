@@ -37,6 +37,7 @@
                         <th>ID</th>
                         <th>Merek</th>
                         <th>Aksi</th>
+                    <tr>
                 </tfoot>
                 <tbody>
                     <tr>
